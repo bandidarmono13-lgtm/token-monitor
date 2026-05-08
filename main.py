@@ -117,11 +117,12 @@ def collect_config():
     max_fee      = prompt_int("    Max fee per gas (gwei)", default=50,   min_val=1,      max_val=5000)
     priority_fee = prompt_int("    Priority fee (gwei)",   default=5,    min_val=1,      max_val=500)
 
-    print("\n[8] WALLET PRIVATE KEY")
-    print("    Input is hidden. Use a dedicated minting wallet!")
-    private_key = input("    Private Key (0x...): ").strip()
-    if not private_key.startswith("0x"):
-        private_key = "0x" + private_key
+    print("    Masukkan path file .txt yang berisi private key")
+print("    Contoh: C:\\Users\\Hype GLK\\pk.txt")
+pk_file = input("    Path file: ").strip().strip('"')
+with open(pk_file, 'r') as f:
+    private_key = f.read().strip()
+print(f"    ✅ Private key loaded ({len(private_key)} chars)")
 
     return {
         "rpc_url":         rpc_url,
