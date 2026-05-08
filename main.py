@@ -119,7 +119,7 @@ def collect_config():
 
     print("\n[8] WALLET PRIVATE KEY")
     print("    Input is hidden. Use a dedicated minting wallet!")
-    private_key = getpass.getpass("    Private Key (0x...): ").strip()
+    private_key = input("    Private Key (0x...): ").strip()
     if not private_key.startswith("0x"):
         private_key = "0x" + private_key
 
