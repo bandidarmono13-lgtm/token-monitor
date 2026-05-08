@@ -231,43 +231,45 @@ def countdown(mint_time_utc):
 
 
 def do_mint(w3, account, cfg):
-    contract = w3.eth.contract(
-        address=cfg["contract_address"],
-        abi=build_abi(cfg["mint_function"])
-    )
 
-    # Check supply
-    try:
-        total = contract.functions.totalSupply().call()
-        try:
-            max_s = contract.functions.maxSupply().call()
-            print(f"Supply: {total}/{max_s}")
-            if total >= max_s:
-                print("SOLD OUT!")
-                return False
-        except Exception:
-            print(f"Minted so far: {total}")
-    except Exception:
-        pass
+    SEADROP_ADDRESS  = Web3.to_checksum_address("0x00005EA00Ac477B1030CE78506496e8C2dE24bf5")
+    NFT_CONTRACT     = Web3.to_checksum_address(cfg["contract_address"])
+    FEE_RECIPIENT    = Web3.to_checksum_address("0x0000a26b00c1F0DF003000390027140000fAa719")
+    ZERO_ADDRESS     = "0x0000000000000000000000000000000000000000"
 
+    SEADROP_ABI = [
+        {
+            "inputs": [
+                {"internalType": "address", "name": "nftContract",      "type": "address"},
+                {"internalType": "address", "name": "feeRecipient",     "type": "address"},
+                {"internalType": "address", "name": "minterIfNotPayer", "type": "address"},
+                {"internalType": "uint256", "name": "quantity",         "type": "uint256"}
+            ],
+            "name": "mintPublic",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+        }
+    ]
+
+    seadrop   = w3.eth.contract(address=SEADROP_ADDRESS, abi=SEADROP_ABI)
     nonce     = w3.eth.get_transaction_count(account.address)
     value_wei = w3.to_wei(cfg["mint_price_eth"] * cfg["mint_amount"], "ether")
 
-    try:
-        mint_fn = getattr(contract.functions, cfg["mint_function"])
-        tx = mint_fn(cfg["mint_amount"]).build_transaction({
-            "from":                 account.address,
-            "value":                value_wei,
-            "gas":                  cfg["gas_limit"],
-            "maxFeePerGas":         w3.to_wei(cfg["max_fee_gwei"], "gwei"),
-            "maxPriorityFeePerGas": w3.to_wei(cfg["priority_fee_gwei"], "gwei"),
-            "nonce":                nonce,
-            "chainId":              1,
-        })
-    except Exception as e:
-        print(f"Build tx failed: {e}")
-        print("Tip: double check function name on Etherscan")
-        return False
+    tx = seadrop.functions.mintPublic(
+        NFT_CONTRACT,           # contract NFT
+        FEE_RECIPIENT,          # fee recipient OpenSea (WAJIB ini, jangan diganti)
+        ZERO_ADDRESS,           # minterIfNotPayer = 0x0 artinya payer = minter
+        cfg["mint_amount"]
+    ).build_transaction({
+        "from":                 account.address,
+        "value":                value_wei,
+        "gas":                  cfg["gas_limit"],
+        "maxFeePerGas":         w3.to_wei(cfg["max_fee_gwei"], "gwei"),
+        "maxPriorityFeePerGas": w3.to_wei(cfg["priority_fee_gwei"], "gwei"),
+        "nonce":                nonce,
+        "chainId":              1,
+    })
 
     signed  = w3.eth.account.sign_transaction(tx, cfg["private_key"])
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
@@ -283,7 +285,7 @@ def do_mint(w3, account, cfg):
         print(f"View   : https://opensea.io/{account.address}")
         return True
     else:
-        print("\nTX FAILED! Check Etherscan for details.")
+        print("\nTX FAILED! Check Etherscan.")
         return False
 
 
